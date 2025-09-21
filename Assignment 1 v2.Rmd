@@ -1,0 +1,74 @@
+---
+title: "Assignment 1 v2"
+author: "Gabrielle Carpenito"
+date: "2025-09-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+
+```
+> mydata <- (Typical_Employee_Survey_Data)
+> summary(mydata$age)
+Length  Class   Mode 
+     0   NULL   NULL 
+
+> summary(mydata$gender)
+Length  Class   Mode 
+     0   NULL   NULL 
+
+> 
+> summary(mydata$JobSatisfaction)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   1.000   1.000   1.631   2.000   4.000 
+
+> summary(mydata$ImpJobCharacteristic)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   2.000   5.000   3.705   5.000   5.000 
+
+> summary(mydata$ImpJobCharacteristic)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   2.000   5.000   3.705   5.000   5.000 
+
+> summary(mydata$YearsEmployer)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  0.080   2.000   5.000   8.224  11.000  52.250 
+
+> summary(mydata$PromotionLikelihood)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   2.000   4.000   3.287   5.000   5.000 
+
+> summary(mydata$DecisionAuthority)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   2.000   2.000   2.279   3.000   4.000 
+
+> summary(mydata$BudgetDecision)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   1.000   1.000   1.451   2.000   2.000 
+
+> summary(mydata$OrganizationPride)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   1.000   2.000   1.787   2.000   4.000 
+
+> summary(mydata$JobChurnForPay)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   2.000   4.000   3.254   4.000   5.000 
+
+> summary(mydata$WorkRelations)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   1.000   2.000   1.787   2.000   4.000 
+
+> mydata$Gender <- factor(mydata$Gender)
+
+> mydata$JobSatisfaction <- factor(mydata$JobSatisfaction)
+
+> plot(mydata$DecisionAuthority,mydata$BudgetDecision)
+
+> plot(mydata$JobSatisfaction,mydata$YearsEmployer)
+
+> barplot(mydata$JobSatisfaction,mydata$YearsEmployer)
+
+
