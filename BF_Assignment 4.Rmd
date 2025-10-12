@@ -1,0 +1,92 @@
+---
+title: "Assignment 4"
+author: "gc961@armyrotc.rutgers.edu"
+date: "10/12/2024"
+output: 
+  html_document: 
+    fig_caption: true
+---
+```{r Ausbeer}
+library (fpp2)
+library (TTR)
+library (forecast)
+
+
+attributes(ausbeer)
+plot(ausbeer)
+acf(ausbeer)
+
+####Forecasting Methods
+
+####Mean Forecast
+mean_forecast <- meanf(ausbeer, 10)
+plot(mean_forecast)
+mean_forecast
+accuracy(mean_forecast)
+
+#### The mean forecast shows an increasing trend from the beginning of the data set (1956) to about 1975. After that, it mostly levels off in terms of a trend. There is a seasonality to the data. The mean is 415.3716 with the low 80 and high 80 being 304.7221 and 526.0211, respectively. The MAPE is 17.99939. This isn't the strongest way to forecast as there is a change in trend and there is seasonality to the data. 
+
+####Naive Method
+naive_forecast <- naive(ausbeer,10)
+plot(naive_forecast)
+naive_forecast
+
+#### The naive method has a MAPE of 13.3973 so if we base our findings on the MAPE, it is slightly better than just using the mean forecast. The strength of the naive forecast is its simplicity. 
+
+####Random Walk
+
+rwf_forecast <- rwf(ausbeer,10)
+plot(rwf_forecast)
+rwf_forecast <- rwf(ausbeer,10, drift=TRUE)
+plot(rwf_forecast)
+rwf_forecast <- rwf(ausbeer,100, drift=TRUE)
+plot(rwf_forecast)
+
+#### Random Walk data tends to work best with data that has no seasonality or trend which is not the case here. It has one of the highest MAPE so based on that accuracy measure it is not the best. 
+
+####Seasonal Naive
+
+snaive_forecast <- snaive(ausbeer,100)
+plot(snaive_forecast)
+
+#### the seasonal naive has the lowest MAPE out of all the forecasting models of with a MAPE of 3.69567. The snaive is the strongest forecast of this data set because beer sales tend to be seasonal (higher in the summers, lower in the winters) 
+
+####Moving Averages
+
+MA5_forecast <- ma(ausbeer,order=5)
+MA9_forecast <- ma(ausbeer,order=9)
+plot(MA5_forecast)
+plot(MA9_forecast)
+plot(MA9_forecast)
+
+#### Advantages of Moving Averages is it smooths out short term fluctuations and focuses on the trends in the data. It does lag behind recent changes in the data. Due to australian beers sales being pretty steady, besides the seasonal fluctuations, this model is a good forecast for the data. 
+
+
+#### Holt Winters
+
+HW_forecast <-HoltWinters(ausbeer)
+plot(HW_forecast)
+SSE_Simple <- HoltWinters(ausbeer, beta=FALSE, gamma=FALSE)
+attributes(SSE_Simple)
+forecast_HW <- forecast(HW_forecast, 5)
+forecast_HW <- forecast(HW_forecast,h=5)
+plot(forecast_HW)
+accuracy (forecast_HW)
+
+#### the MAPE for Holt Winters is 2.8744 which is the lowest out of all the forecasting models
+
+
+####Plot all in single chart
+
+plot(ausbeer)
+lines(naive_forecast$mean,col="red")
+lines(rwf_forecast$mean,col="green")
+lines(snaive_forecast$mean, col ="black")
+lines(MA5_forecast, col="pink")
+lines(MA9_forecast, col="blue")
+
+####Accuracy Measure
+
+#### I chose MAPE as my measure because I like that it gives a % accuracy so it is easy to understand and apply with this data set. Overall, the Seasonal Naive model had the lowest MAPE with 3.69%. 
+```
+
