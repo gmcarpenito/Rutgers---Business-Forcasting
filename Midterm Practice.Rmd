@@ -1,0 +1,96 @@
+---
+title: "Midterm Practice"
+author: "Gabrielle Carpenito"
+date: "2025-10-12"
+output: html_document
+---
+
+```{r ausbeer}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(fpp2)
+library(TTR)
+library(forecast)
+
+attributes(ausbeer)
+plot(ausbeer)
+
+#### Observations: There is seasonality, which makes sense as the demand for beer tends to be higher in the warmer seasons (summer). There is a trend from the beginning of the data (1956) until about 1975. After that there is not really a distinct trend. 
+
+#Acf Central Tendency
+acf(ausbeer)
+summary (ausbeer)
+boxplot(ausbeer)
+#### Observations: The ACF shows that the data has seasonality which makes sense as beer tends to be more popular in the summer months.  
+
+# Naive 
+naive_forecast <- naive(ausbeer, 10)
+plot(naive_forecast)
+accuracy (naive_forecast)
+res_naive <- residuals(naive_forecast)
+plot(res_naive)
+hist(res_naive)
+
+
+####Summary of Naive Forecasting Method: The naive method sets the forecast for the next period equal to the last actual observation. Works reasonably well for random walk processes or time series with no clear trend or seasonality, but performs poorly for series with trends or seasonality.The forecast for all future periods (one year ahead) is the same as the last observed value. Between 1990, the residuals were greater than any previous years, this could be because of a boom in beer popularity that caused the Australian production to lag behind.This histogram shows more frequency in the negative residuals meaning that it was more common for them to over-produce beer.  
+
+# Moving Averages
+
+MA3_forecast <- ma(ausbeer,order=3)
+MA6_forecast <- ma(ausbeer,order=6)
+MA9_forecast <- ma(ausbeer,order=9)
+
+lines(MA3_forecast, col="red")
+lines(MA6_forecast, col="blue")
+lines(MA9_forecast, col="green")
+
+#### Observations: A moving averages plot is a way to smooth out a time series and reveal underlying trends or patterns by reducing noise. As the order gets larger, the line moves closer to an average/smoothing, decreasing the "noise".
+
+# Holt Winters
+
+HW_forecast <- HoltWinters(ausbeer)
+plot(HW_forecast)
+SSE_Simple <- HoltWinters(ausbeer, beta=FALSE, gamma=FALSE)
+attributes(SSE_Simple)
+plot(SSE_Simple)
+SSE_Simple$SSE
+head(SSE_Simple$fitted)
+HW_forecast
+HW_forecast<- forecast(HW_forecast, h=12)
+plot(HW_forecast)
+
+#### the alpha is 0.2145843, it being closer to 0 to than to 1 indicates that this model smooths out fluctuations and reacts slowly.The beta (trend) is 0.1251566 indicating that the trend changes slowly and is more stable. The gamma (seasonal) is 0.320835 is low indicating that the seasonal pattern changes slowly and is stable over time. 
+
+HW_res <- residuals(HW_forecast)
+plot(HW_res)
+#### what does the plot indicate: 
+
+hist(HW_res)
+#### what does the plot indicate:
+
+accuracy(HW_forecast)
+
+ts_data <- ts(ausbeer, start=c(1956,4), frequency=4)
+plot(ts_data, main="ausbeer", ylab="value", xlab="Time")
+
+#### Holt-Winters captures level, trend, and seasonal patterns to project forward.
+
+# Simple Smoothing
+
+SES_forecast <- ses(ausbeer, h=12)
+summary(SES_forecast)
+attributes(SES_forecast)
+accuracy (SES_forecast)
+
+#### the alpha is 0.1488 meaning the model puts very little weight on recent data or the  forecast changes slowly, relies more on past level (smoother, less sensitive). The initial level is 259.6592. The value of sigma is 50.884 meaning this is the standard deviation. 
+
+res_SES <- residuals(SES_forecast)
+plot(res_SES)
+hist(res_SES)
+acfr <- acf(res_SES)
+
+#### SES can be accurate for stable, flat series with no trend or seasonality.
+
+
+```
+
