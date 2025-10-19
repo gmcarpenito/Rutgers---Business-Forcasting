@@ -1,0 +1,45 @@
+---
+title: "BF_Assignment 5"
+author: "Gabrielle Carpenito"
+date: "2025-10-13"
+output: html_document
+---
+
+```{r ausbeer}
+library(fpp2)
+library(TTR)
+library(forecast)
+
+
+head(ausbeer)
+plot(ausbeer)
+
+# Seasonally Adjusted:
+
+stl(ausbeer,s.window = "periodic")
+stl_decomp <- stl(ausbeer, s.window ="periodic")
+plot(stl_decomp)
+attributes(stl_decomp)
+seasadj(stl_decomp)
+f_stl <- forecast(stl_decomp)
+plot(f_stl)
+f_stl <- forecast(stl_decomp, h=15)
+plot(f_stl)
+
+
+# Decompose
+
+decompose(ausbeer)
+decomp_ausbeer <- decompose(ausbeer)
+plot(decomp_ausbeer)
+attributes(decomp_ausbeer)
+
+
+
+
+
+```
+
+
+
+
