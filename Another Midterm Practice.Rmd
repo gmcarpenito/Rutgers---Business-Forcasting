@@ -1,0 +1,171 @@
+title: "Another Midterm Practice"
+author: "Gabrielle Carpenito"
+date: "2025-10-13"
+output: html_document
+
+```{r transit_ts}
+
+library(readr)
+library(seasonal)
+library (TTR)
+library (forecast)
+
+TRANSIT <- read.csv("C:/Users/gmcar/Downloads/TRANSIT.csv")
+View(TRANSIT)
+transit_raw <- TRANSIT$TRANSIT
+transit_ts <- ts(transit_raw, frequency =12, start=c(2000,1))
+plot(transit_ts)
+
+
+#### Summarize Plot: Initial observations show a seasonality to the data with a strong drop off at 2020, assuming from the pandemic when everyone was in quarantine and therefore not taking public transportation. Trending upwards after 2020 when things started to open back up. 
+
+summary (transit_ts)
+boxplot(transit_ts)
+
+#### Summary of Central Tendency: Median being 824766 and Mean being 779435 imply that the data is left skewed. The median is less affected by outliers than the mean. This is probably from the 2020 era pandemic where there were outliers of very little people traveling which creates the left skew. 
+
+
+# DECOMPOSE
+
+decompose(transit_ts)
+decomp_transit <- decompose(transit_ts)
+plot(decomp_transit)
+
+#### Summary of Decomposition: Yes, the time series is seasonal. The decomposition is additive. If you look at the seasonal section, it is roughly the same across the whole series. It looks to be the lowest in the winter months, post holiday, and highest in the Thanksgiving and Christmas time and summer months. It could be high in the summer months because that is when most people take their vacations when school is out of session.It also peaks around Christmas and Thanksigiving time which makes sense as people ar traveling to see family. Lowest in the time after new year as there are no major holidays to travel for and children are back in school. 
+
+stl(transit_ts,s.window = "periodic")
+stl_decomp <- stl(transit_ts, s.window ="periodic")
+plot(stl_decomp)
+attributes(stl_decomp)
+
+
+#### This is what I would have done for the seasonal adjusted graph but R is not letting me knit, it is saying seasadj doesnt exist. I loaded the seasonal package so I dont know what else to do. 
+###SAtransit <-seasadj(stl_decomp)
+###plot(transit_ts)
+###lines(SAtransit, col="red")
+
+# NAIVE
+
+naive_transit <-naive (transit_ts, 5)
+plot(naive_transit)
+residuals(naive_transit)
+resnaive_transit <- residuals (naive_transit)
+plot(resnaive_transit)
+
+#### Summary of Residuals: there is high error between the time series and the residuals, especially around 2020 and the COVID era. 
+
+hist(resnaive_transit)
+
+#### Histogram: historgram shows that the most common residuals is slightly less than 0 meaning that, on average, the model under forecasts. 
+
+plot(fitted(naive_transit), residuals(naive_transit), xlab = "Fitted values", ylab = "Residuals", main = "Residuals vs Fitted Plot")
+
+plot(transit_ts, residuals (naive_transit), xlab = "Actual Values", ylab = "Residuals", main = "Actual vs Residuals (Naive)")
+
+acf(transit_ts)
+
+
+accuracy (naive_transit)
+naive_transit <-naive (transit_ts, 12)
+plot(naive_transit)
+summary (naive_transit)
+
+#### Forecast in one year is 532206. The MAPE is pretty good at 6.06333. 
+
+
+# MOVING AVERAGES
+
+MA3_forecast <- ma(transit_ts,order=3)
+MA6_forecast <- ma(transit_ts,order=6)
+MA9_forecast <- ma(transit_ts,order=9)
+plot(MA3_forecast)
+plot(MA6_forecast)
+plot(MA9_forecast)
+
+plot(transit_ts)
+lines(MA3_forecast, col="red")
+lines(MA6_forecast, col="blue")
+lines(MA9_forecast, col="green")
+
+#### As the moving average order goes up, the plot gets smoother. The plot removes smaller bumps, only general trends still appear. 
+
+plot(transit_ts,h=12)
+lines (MA6_forecast, col="blue")
+
+#SIMPLE SMOOTHING
+
+SES_forecast <- ses(transit_ts, h=12)
+summary(SES_forecast)
+
+#### Alpha is 0.8374, it determines how much weight is given to the latest observation vs past smoothed values.Given that it is closer to 1 than 0, the model reacts quickly to recent changes. The initial state is 732001.6666. The value of sigma is 55323.68, it signifies the seasonality. 
+
+residuals(SES_forecast)
+resSES <- residuals (SES_forecast)
+plot(resSES)
+
+#### plot of the residuals is not tight therefore there is significant error in the model. 
+hist(resSES)
+
+#### histogram shows the residuals hovering around 0 with slightly more being under 0 meaning that the model under forecasts. 
+
+plot(fitted(SES_forecast), residuals(SES_forecast), xlab = "Fitted values", ylab = "Residuals", main = "Residuals vs Fitted Plot")
+
+plot(transit_ts, residuals (SES_forecast), xlab = "Actual Values", ylab = "Residuals", main = "Actual vs Residuals (SES)")
+
+acf(resSES)
+
+#### ACF plot of residuals 
+
+accuracy (SES_forecast)
+summary(SES_forecast)
+plot(SES_forecast)
+
+#### 
+
+
+#HOLT WINTERS
+
+HW_forecast <- HoltWinters(transit_ts)
+plot(HW_forecast)
+summary (HW_forecast)
+
+#### alpha is 1, gamma is 1, beta is 1. This means that the model is fully reactive, ignoring all smoothing. The forecast just mirrors the latest observations and changes immediately, which usually indicates a highly volatile series
+
+SSE_Simple <- HoltWinters(transit_ts, beta=FALSE, gamma=FALSE)
+attributes(SSE_Simple)
+plot(SSE_Simple)
+SSE_Simple$SSE
+head(SSE_Simple$fitted)
+HW_forecast <- forecast(HW_forecast, h=12)
+plot(HW_forecast)
+accuracy (HW_forecast)
+
+resHW <- residuals(HW_forecast)
+plot(resHW)
+
+acf(HW_forecast)
+
+#### Compared to the other residual plots, this has a much tigher formation around zero, except for 2020 with the COVID pandemic being the outlier. 
+
+hist(resHW)
+
+#### Histogram shows less deviation from 0. Majority is within one standard deviation from 0, with the higher being less than 0. 
+
+plot(fitted(HW_forecast), residuals(HW_forecast), xlab = "Fitted values", ylab = "Residuals", main = "Residuals vs Fitted Plot")
+
+plot(transit_ts, residuals (HW_forecast), xlab = "Actual Values", ylab = "Residuals", main = "Actual vs Residuals (Holt-Winters)")
+
+accuracy (HW_forecast)   
+
+acc_naive <- accuracy (naive_transit)
+acc_SES <- accuracy (SES_forecast)
+acc_HW <- accuracy (HW_forecast)
+Accuracy_table <- rbind(Naïve=acc_naive [1, ], SES = acc_SES [1, ], HW =acc_HW [1, ])
+Accuracy_table
+
+#### I think the worst in this case would be RMSE because it penalizes months that we are off by a lot. And in this case we are off by a lot during COVID. If we completely got rid of all the data COVID and prior, this method would be good but since we are using everything, I would not use RMSE. I think I would use MAE because it gives the average number of people you’re off so it is very intuitive for planning and easy to understand in this context. 
+
+
+#### I think we will see transportation usage gradually increase until it gets back to pre-COVID numbers. 
+```
+
