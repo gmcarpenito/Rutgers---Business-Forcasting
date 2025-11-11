@@ -1,0 +1,175 @@
+title: "Midterm"
+author: "Gabrielle Carpenito"
+date: "2025-11-10"
+output: html_document
+
+```{r totalsa_ts}
+
+library(readr)
+library(seasonal)
+library (TTR)
+library (forecast)
+TOTALSA <- read.csv("C:/Users/gmcar/Downloads/TOTALSA.csv")
+View(TOTALSA)
+totalsa_raw <- TOTALSA$Sales.Units.in.Millions.
+totalsa_ts <- ts(totalsa_raw, frequency =12, start=c(2020,1))
+plot(totalsa_ts)
+#When I first did the plot for the data, it shows a deep drop in sales in 2021 and a steep increase shortly after. This anomoly could be because of the semiconductor shortage that happened during this time that put the automotive industry at a standstill. I decided to use the window function to get a better future accuracy in the models by ignoring those anomalies in the data. For purposes of this data, we will start in 2022.
+totalsa_ts <- window(totalsa_ts, start=c(2022,1))
+plot(totalsa_ts)
+summary(totalsa_ts)
+boxplot(totalsa_ts)
+
+#### observations: after decreasing the data to a smaller window, the mean in 15.25 and the box plot shows that the middle 50% of the data lie between 14 and 16 with the median being 15.47. 
+
+#DECOMPOSITION
+
+decompose(totalsa_ts)
+decomp_totalsa <- decompose(totalsa_ts)
+plot(decomp_totalsa)
+
+stl(totalsa_ts,s.window = "periodic")
+stl_decomp <- stl(totalsa_ts, s.window ="periodic")
+plot(stl_decomp)
+attributes(stl_decomp)
+
+
+#### I would say this data is seasonal because if you look at the decomposition, there is a pattern in the seasonal section. Right around the summer time and into the fall there is a a pattern of higher sales. This is probably because car dealerships are not only running summer Holiday sales at this time, but also pushing the old inventory from the previous year to make room for the new years inventory. New car inventory historically comes about between ~ July and October. I think this data set is additive because the seasonal variation is constant over time. 
+
+SAtotalsa <- seasadj(stl_decomp)
+plot(totalsa_ts)
+lines(SAtotalsa, col="red")
+
+#### There is significant fluctuations in the seasonally adjusted values over the time series. 
+
+#NAIVE
+naive_totalsa <-naive (totalsa_ts, 5)
+plot(naive_totalsa)
+residuals(naive_totalsa)
+resnaive_totalsa <- residuals (naive_totalsa)
+plot(resnaive_totalsa)
+hist(resnaive_totalsa)
+
+plot(fitted(naive_totalsa), residuals(naive_totalsa), xlab = "Fitted values", ylab = "Residuals", main = "Residuals vs Fitted Plot")
+
+plot(totalsa_ts, residuals (naive_totalsa), xlab = "Actual Values", ylab = "Residuals", main = "Actual vs Residuals (Naive)")
+
+acf(naive_totalsa)
+accuracy(naive_totalsa)
+naive_totalsa <-naive (totalsa_ts, 12)
+plot(naive_totalsa)
+naive_totalsa
+summary (naive_totalsa)
+
+####in the residuals graph there is a lot of variance particularly in 2022. This means that the actual and forecasted values differed more in 2022 than any other year. This model predicts that the February 2026 value will be 16.191. The MAPE of this model is 4.39%. 
+
+
+
+
+#SIMPLE MOVING AVERAGES
+MA3_forecast <- ma(totalsa_ts,order=3)
+MA6_forecast <- ma(totalsa_ts,order=6)
+MA9_forecast <- ma(totalsa_ts,order=9)
+plot(MA3_forecast)
+plot(MA6_forecast)
+plot(MA9_forecast)
+
+plot(totalsa_ts)
+lines(MA3_forecast, col="red")
+lines(MA6_forecast, col="blue")
+lines(MA9_forecast, col="green")
+
+#### As the moving average order goes up, the trend becomes smoother capturing only long-term movements. The smaller the order (MA3), the graph more closely follow the short term ups and downs. There is less residual the higher the order, removing fluctuations making the graph have a less "random" component.
+
+####BONUS
+forecastMA6 <- forecast(MA6_forecast, h=12)
+plot(forecastMA6)
+
+
+#SIMPLE SMOOTHING
+SES_forecast <- ses(totalsa_ts, h=12)
+summary(SES_forecast)
+
+#### alpha is 0.9149, it determines how much weight is given to the latest observation vs past smoothed values. This alpha being close to 1 indicates that the model reacts quickly to recent changes. The initial state is 16.6662 and sigma is .08702. Sigma is a summary of how much the forecast typically deviates from the actual values. This data has a relatively small sigma meaning that the forecast errors deviate from the smoothed value by 0.87 units. 
+
+residuals(SES_forecast)
+resSES <- residuals (SES_forecast)
+plot(resSES)
+
+#### in the beginning of the data, the residuals were not tight but they got tighter as the years progress. We can infer from this that the model more accurately represents the data after 2022. 
+hist(resSES)
+
+#### histogram shows the residuals hovering around 0 with slightly more being over 0 meaning that the model over-forecasts. 
+
+plot(fitted(SES_forecast), residuals(SES_forecast), xlab = "Fitted values", ylab = "Residuals", main = "Residuals vs Fitted Plot")
+
+plot(totalsa_ts, residuals (SES_forecast), xlab = "Actual Values", ylab = "Residuals", main = "Actual vs Residuals (SES)")
+
+#### There is a lot of varaince in the residuals of both of these graphs, they are tightly fitted around 0. 
+
+acf(resSES)
+
+
+accuracy (SES_forecast)
+summary(SES_forecast)
+plot(SES_forecast)
+
+#### SES forecast has the MAPE as 4.204 which is a pretty good MAPE in comparison to the Naive forecast.This model has the February 2026 value as 16.13933. 
+
+#HOLT WINTERS
+
+HW_forecast <- HoltWinters(totalsa_ts)
+plot(HW_forecast)
+summary (HW_forecast)
+
+#### alpha is 1, gamma is 1, beta is 1. This means that the model is fully reactive, ignoring all smoothing. The forecast just mirrors the latest observations and changes immediately, which usually indicates a highly volatile series
+
+
+SSE_Simple <- HoltWinters(totalsa_ts, beta=FALSE, gamma=FALSE)
+attributes(SSE_Simple)
+plot(SSE_Simple)
+SSE_Simple$SSE
+head(SSE_Simple$fitted)
+HW_forecast <- forecast(HW_forecast, h=12)
+resHW <- residuals(HW_forecast)
+
+
+hist(resHW)
+
+#### Histogram shows deviation from 0. Majority is within two standard deviation higher than 0, meaning this model over forecasts. 
+
+plot(fitted(HW_forecast), residuals(HW_forecast), xlab = "Fitted values", ylab = "Residuals", main = "Residuals vs Fitted Plot")
+
+plot(totalsa_ts, residuals (HW_forecast), xlab = "Actual Values", ylab = "Residuals", main = "Actual vs Residuals (Holt-Winters)")
+
+#### The residuals scatter randomly around 0 meaning that model captures trend and seasonality. 
+
+plot(resHW)
+acf(HW_forecast)
+accuracy (HW_forecast)
+plot(HW_forecast)
+HW_forecast
+
+#### the holt winters MAPE is 4.45, which is good but not as good as some of the other models we have already looked at. This model predicts sales for February 2026 will be 14.77396. 
+
+
+#ACCURACY SUMMARY
+
+acc_naive <- accuracy (naive_totalsa)
+acc_SES <- accuracy (SES_forecast)
+acc_HW <- accuracy (HW_forecast)
+Accuracy_table <- rbind(Naïve=acc_naive [1, ], SES = acc_SES [1, ], HW =acc_HW [1, ])
+Accuracy_table
+
+#### SES: forecasts times series data with no clear trend or seasonality, give mmore weight to recent observations , decreasing weight of older data
+#### Naive: simple baseline forecast, assumes next periods value is equal to last oberservation
+#### Holt Winters: forecasts data with trend and seasonality
+#### Moving Average: smoothes out short term fluctuations to highlight long term trend. 
+
+
+#CONCLUSION
+
+#### After analyzing historical US car sales data from 2022 to 2025 to identify patterns, seasonality, and trends, and to develop forecasting models that can predict future sales, it is clear that this data has an element of seasonality and trend. Car sales are known to be seasonal because they come out with yearly inventory that increases demand for the new model with the latest technology. Based on the accuracy measures above, the best model for this data is the SES model with a MAPE of 4.204252 which means that on average, the forecast from the HW model was off by 4.20% from actual car sales. I think the car industry has shown a consistent increasing trend over the last 3 years so I expect it too increase over the next year and next two years. The U.S has built its infrastructure different than that of other countries due to its size which makes most of the american population reliant on cars to get them place. Our train and subway system just isn't robust enough to see a change in car sales in the next few  years. Maybe in the long term, if the US invests more heavily into public transportation, we will see a change in car sales. I think Holt Winters is the best, followed by SES, Moving Averages, and then Naive.  
+
+```
+
