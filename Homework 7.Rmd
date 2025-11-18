@@ -1,0 +1,44 @@
+---
+title: "ARIMA"
+author: "gc961@armyrotc.rutgers.edu"
+date: "11/18/2025"
+output: html_document
+---
+
+```{r ausbeer}
+
+library(fpp2)
+library(forecast)
+
+plot(ausbeer)
+ausbeer <- window(ausbeer, start=c(1975,1))
+
+#FOR SEASONAL DATA
+plot(ausbeer)
+nsdiffs(ausbeer)
+ndiffs(ausbeer)
+ndiffs((diff(ausbeer,5)))
+tsdisplay(diff(diff(ausbeer,5)))
+fit3 <- auto.arima(ausbeer,trace=TRUE, stepwise = FALSE )
+fit3
+
+#EXPLAIN THE OUTPUT: The series has a recurring seasonal pattern that repeats every s periods, which is addressed by seasonal differencing. After removing seasonality, the present value is influenced by last period’s value (AR 1), the last two noise terms (MA 1 ), seasonal dependence is captured by one lagged seasonal error term (seasonal MA 1).
+
+
+#Residual Analysis
+Acf(fit3$residuals)
+Box.test(residuals(fit3), lag=20, type="Ljung")
+plot.ts(residuals(fit3))
+hist(fit3$residuals)
+tsdiag(fit3)
+
+#FORECAST
+ARIMAforecast <- forecast(fit3, h=5)
+plot(ARIMAforecast)
+accuracy(ARIMAforecast)
+
+
+
+
+```
+
