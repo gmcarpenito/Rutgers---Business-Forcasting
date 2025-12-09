@@ -1,0 +1,206 @@
+title: "Final Exam"
+author: "Gabrielle Carpenito"
+date: "2025-12-08"
+output: html_document
+
+```{r Data_NewYorkEdited}
+
+library(readr)
+library(seasonal)
+library (TTR)
+library (forecast)
+
+Data_NewYorkEdited <- read.csv("C:/Users/gmcar/Downloads/Data_NewYorkEdited.csv")
+mydata <- Data_NewYorkEdited$UnemployedLF
+mydata_ts <- ts(mydata, frequency = 12, start= c(1976,1))
+
+              
+plot(mydata_ts)
+Acf(mydata_ts)
+
+# Time series shows a cyclical variance between 1976 and 2020. Acf plot shows a trend downward but no clear seasonality.
+
+mydata_ts <- window(mydata_ts, start=c(2015,1))
+plot(mydata_ts)
+Acf(mydata_ts)
+
+summary(mydata_ts)
+boxplot(mydata_ts)
+
+#I used a window to get rid of majority of the data up until 2015. It looked to be random so I thought getting a smaller data set closer to today's values make provide a more accurate forecast. Summary and Box plot show that the middle 50% of the data lies between 4.1 and 5.2. 
+
+
+decompose(mydata_ts)
+decomp_mydata<- decompose (mydata_ts)
+plot(decomp_mydata)
+
+# Data has a seasonal component because there is a repeating patterns at regular intervals.Seasonal component fluctuates around zero and repeats consistently.Seasonal peak remains constant so the data is additive. 
+
+decomp <- decompose (mydata_ts, type= "additive")
+seasonal_component <- decomp$seasonal
+seasonal_matrix <- matrix (seasonal_component, ncol=12, byrow=TRUE)
+monthly_indicies <- colMeans(seasonal_matrix)
+monthly_indicies
+
+# series value is high in November and low in April. Unemployment may be low in November and other winter months in preparation for the Holiday season. Unemployment is high in April because those seasonal jobs end and the seasonal jobs that happen in the summer (tourism, agriculture, etc) havent started yet. 
+
+seasonally_adjusted <- seasadj(decomp_mydata)
+plot(seasonally_adjusted)
+plot(mydata_ts, col = "blue", lwd = 2, main = "Actual vs Seasonally Adjusted Time Series", ylab = "Values", xlab = "Time")
+lines(seasonally_adjusted, col = "red", lwd = 2)
+
+# from what I can tell there arent huge fluctuations from the seasonally adjusted (red) and the original data (blue) 
+
+#NAIVE
+
+naive_mydata <-naive (mydata_ts, 10)
+plot(naive_mydata)
+residuals(naive_mydata)
+resnaive_mydata <- residuals (naive_mydata)
+plot(resnaive_mydata)
+hist(resnaive_mydata)
+plot(as.numeric(naive_mydata$residuals),as.numeric(naive_mydata$fitted))
+residuals <- residuals(naive_mydata)
+plot(residuals)
+hist(residuals)
+fitted_values <- fitted (naive_mydata)
+plot(fitted_values, residuals, xlab = "Fitted Values", ylab= "Residuals")
+
+plot(mydata_ts, residuals (naive_mydata), xlab = "Actual Values", ylab = "Residuals", main = "Actual vs Residuals (Naive)")
+
+Acf(resnaive_mydata)
+# ACF plot shows that there is seasonality.
+
+accuracy(naive_mydata)
+naive_mydata <-naive (mydata_ts, 12)
+plot(naive_mydata)
+naive_mydata
+# forecast has foreacast in one year being 4.0. 
+summary (naive_mydata)
+# accuracy is good with a MAPE of 1.44% in the residuals graph there is a lot of variance particularly in 2019. This means that the actual and forecasted values differed more in 2019 than any other year.
+
+
+#SIMPLE MOVING AVERAGES
+
+MA3_forecast <- ma(mydata_ts,order=3)
+MA6_forecast <- ma(mydata_ts,order=6)
+MA9_forecast <- ma(mydata_ts,order=9)
+plot(MA3_forecast)
+plot(MA6_forecast)
+plot(MA9_forecast)
+
+plot(mydata_ts)
+lines(MA3_forecast, col="red")
+lines(MA6_forecast, col="blue")
+lines(MA9_forecast, col="green")
+
+forecastMA6 <- forecast(MA6_forecast, h=12)
+plot(forecastMA6)
+
+#As the moving average order goes up, the trend becomes smoother capturing only long-term movements. The smaller the order (MA3), the graph more closely follow the short term ups and downs. There is less residual the higher the order, removing fluctuations making the graph have a less "random" component.
+
+#SIMPLE SMOOTHING
+SES_forecast <- ses(mydata_ts, h=12)
+summary(SES_forecast)
+
+#### alpha is 0.9999, it determines how much weight is given to the latest observation vs past smoothed values. This alpha being close to 1 indicates that the model reacts quickly to recent changes. The initial state is 6.2055 and sigma is .0929. Sigma is a summary of how much the forecast typically deviates from the actual values. This data has a relatively small sigma meaning that the forecast errors deviate from the smoothed value by 0.92 units. 
+
+residuals(SES_forecast)
+resSES <- residuals (SES_forecast)
+plot(resSES)
+
+plot(fitted(SES_forecast), residuals(SES_forecast), xlab = "Fitted values", ylab = "Residuals", main = "Residuals vs Fitted Plot")
+
+plot(mydata_ts, residuals (SES_forecast), xlab = "Actual Values", ylab = "Residuals", main = "Actual vs Residuals (SES)")
+
+acf(resSES)
+accuracy(SES_forecast)
+summary(SES_forecast)
+plot(SES_forecast)
+
+#### SES forecast has the MAPE as 1.42 which is a pretty good MAPE in comparison to the Naive forecast.This model has the February 2020 value as 3.9999.
+
+#HOLT WINTERS
+library(forecast)
+HW_forecast <- hw(mydata_ts)
+plot(HW_forecast)
+summary (HW_forecast)
+
+#### results indicate that the model is reacting almost entirely to the most recent data point for the level (alpha = 0.999), meaning the times series has strong short-term fluctuations. The trend updates slowly (beta = 0.0633), suggesting that underlying trend changes are gradual. Meanwhile, the seasonal pattern is extremely stable (gamma = 0.0001), so the model barely adjusts the seasonal component over time. In short, your data shows high short-term volatility, a steady trend, and very consistent seasonality.
+
+####The model estimates that the time series starts at a level of about 6.18 with a very slight downward trend. The 12 seasonal values represent how each month deviates from the average: some months are slightly above the baseline and some slightly below, but the seasonal effects are small overall. This provides the starting point from which Holt-Winters smoothing updates the components as the model learns over time.
+
+#The Holt-Winters model fits the data quite well. Its typical prediction error (sigma) is very small (around 0.095).
+
+resHW <- residuals(HW_forecast)
+plot(resHW)
+hist(resHW)
+
+plot(fitted(HW_forecast), residuals(HW_forecast), xlab = "Fitted values", ylab = "Residuals", main = "Residuals vs Fitted Plot")
+
+plot(mydata_ts, residuals (HW_forecast), xlab = "Actual Values", ylab = "Residuals", main = "Actual vs Residuals (Holt-Winters)")
+
+Acf(resHW)
+accuracy(HW_forecast)
+HW_forecast
+plot(HW_forecast)
+
+#### the holt winters MAPE is 1.42, which is better than or equal to some of the other models we have looked at. This model predicts sales for January 2021 will be 3.75.
+
+
+#ARIMA
+
+Acf(mydata_ts)
+
+#According to my ACF plot, this data series is non-stationary due to the ACF decaying slowly. It remains high for many lags and has a trend present.
+
+ndiffs(mydata_ts)
+# 1 difference is needed to make it stationary. 
+nsdiffs(mydata_ts)
+#no, seasonality component is not needed because nsdiffs function returns 0 meaning seasonality can be ignored. 
+
+plot(mydata_ts)
+tsdisplay(mydata_ts)
+mydatadiff1 <- diff(mydata_ts, differences=1)
+plot(mydatadiff1)
+tsdisplay(mydatadiff1)
+auto_fit <- auto.arima(mydata_ts, trace=TRUE, stepwise = FALSE)
+auto_fit
+attributes(auto_fit)
+plot(forecast(auto_fit,h=10,level=c(99.5)))
+
+#Final ARIMA formula is 4,1,0. 
+
+Acf(auto_fit$residuals)
+Box.test(residuals(auto_fit), lag=1, type="Ljung")
+plot.ts(residuals(auto_fit))
+hist(auto_fit$residuals)
+tsdiag(auto_fit)
+accuracy(auto_fit)
+forecast(auto_fit, h=12)
+plot(forecast(auto_fit, h=12))
+forecast(auto_fit, h=24)
+plot(forecast(auto_fit, h=24))
+
+# THe accuracy for ARIMA is good with a MAPE of 1.01%. The forecast for January 2023 is 2.78. 
+
+#ACCURACY TABLE
+
+acc_naive <- accuracy (naive_mydata)
+acc_SES <- accuracy (SES_forecast)
+acc_HW <- accuracy (HW_forecast)
+acc_MA3 <- accuracy(forecast(MA3_forecast, h=12))
+acc_MA6 <- accuracy(forecast(MA6_forecast, h=12))
+acc_MA9 <- accuracy(forecast(MA9_forecast, h=12))
+acc_ARIMA <- accuracy(auto_fit)
+Accuracy_table <- rbind(Naïve=acc_naive [1, ], SES = acc_SES [1, ], HW =acc_HW [1, ], MA3= acc_MA3 [1.], MA6=acc_MA6[1,], MA9= acc_MA9[1,], ARIMA = acc_ARIMA [1,])
+Accuracy_table
+
+#In analyzing unemployment rates, several forecasting methods were applied, each with distinct characteristics and advantages. Naive forecasting simply projects the last observed value forward, serving as a basic baseline but performing poorly when trends or seasonality are present. Simple Exponential Smoothing (SES) improves on this by weighting recent observations more heavily, making it useful for stationary series without trend or seasonality. Moving Averages smooth short-term fluctuations by averaging recent observations, helping to reduce noise but not capturing trends effectively. Holt-Winters forecasting extends exponential smoothing by incorporating level, trend, and seasonal components, making it particularly suitable for seasonal data like unemployment, where recurring patterns are present each year. Finally, ARIMA models combine auto regressive terms, differencing, and moving averages to flexibly handle trends, seasonality, and autocorrelation, performing well on more complex or non-stationary series. Comparing accuracy measures such as MAE, RMSE, and MAPE, Holt-Winters typically provides the most accurate forecasts for seasonal unemployment data, while Naive forecasting generally yields the least accurate results. ARIMA can also perform well if carefully tuned, whereas SES and Moving Averages perform moderately depending on the series characteristics
+
+
+#Using time series forecasting methods to analyze unemployment rates, I found that the data exhibits clear seasonal patterns. The seasonally adjusted series, plotted alongside the actual values, shows that seasonal fluctuations, while noticeable, are relatively modest compared to the overall trend. Specifically, unemployment tends to be lower in November and higher in April, reflecting seasonal hiring and temporary employment cycles in retail, agriculture, and other industries. Decomposition of the series revealed that the seasonal component repeats consistently each year, confirming the presence of seasonality. By removing this seasonal effect, the adjusted series allows for a clearer view of the underlying trend, helping to better identify changes in the labor market without the influence of predictable seasonal swings. Overall, while seasonality affects the timing of peaks and troughs, it does not dominate the magnitude of the unemployment rate, making forecasting more reliable after adjustment. Based on the different forecasting methods, I think the next year the unemployment rate will be around 3.9. In the next two years, maybe go up slightly based on past trends. My ranking: Moving Averages, ARIMA, SES, HW, then Naive. 
+
+
+```
+
